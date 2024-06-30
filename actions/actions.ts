@@ -3,7 +3,7 @@ import { getKindeServerSession } from "@kinde-oss/kinde-auth-nextjs/server";
 import { ZodStringDef, z } from "zod";
 import prisma from "@/lib/db";
 import { type CategoryTypes } from "@prisma/client";
-// import { stripe } from "./lib/stripe";
+import { stripe } from "@/lib/stripe";
 import { redirect } from "next/navigation";
 
 export type State = {
@@ -124,120 +124,116 @@ export async function UpdateUserSettings(prevState: any, formData: FormData) {
   return state;
 }
 
-// export async function BuyProduct(formData: FormData) {
-//   const id = formData.get("id") as string;
-//   const data = await prisma.product.findUnique({
-//     where: {
-//       id: id,
-//     },
-//     select: {
-//       name: true,
-//       smallDescription: true,
-//       price: true,
-//       images: true,
-//       productFile: true,
-//       User: {
-//         select: {
-//           connectedAccountId: true,
-//         },
-//       },
-//     },
-//   });
+export async function BuyProduct(formData: FormData) {
+  const id = formData.get("id") as string;
+  const data = await prisma.product.findUnique({
+    where: {
+      id: id,
+    },
+    select: {
+      name: true,
+      smallDescription: true,
+      price: true,
+      images: true,
+      User: {
+        select: {
+          connectedAccountId: true,
+        },
+      },
+    },
+  });
 
-//   const session = await stripe.checkout.sessions.create({
-//     mode: "payment",
-//     line_items: [
-//       {
-//         price_data: {
-//           currency: "usd",
-//           unit_amount: Math.round((data?.price as number) * 100),
-//           product_data: {
-//             name: data?.name as string,
-//             description: data?.smallDescription,
-//             images: data?.images,
-//           },
-//         },
-//         quantity: 1,
-//       },
-//     ],
-//     metadata: {
-//       link: data?.productFile as string,
-//     },
+  const session = await stripe.checkout.sessions.create({
+    mode: "payment",
+    line_items: [
+      {
+        price_data: {
+          currency: "usd",
+          unit_amount: Math.round((data?.price as number) * 100),
+          product_data: {
+            name: data?.name as string,
+            description: data?.smallDescription,
+            images: data?.images,
+          },
+        },
+        quantity: 1,
+      },
+    ],
 
-//     payment_intent_data: {
-//       application_fee_amount: Math.round((data?.price as number) * 100) * 0.1,
-//       transfer_data: {
-//         destination: data?.User?.connectedAccountId as string,
-//       },
-//     },
-//     success_url:
-//       process.env.NODE_ENV === "development"
-//         ? "http://localhost:3000/payment/success"
-//         : "https://marshal-ui-yt.vercel.app/payment/success",
-//     cancel_url:
-//       process.env.NODE_ENV === "development"
-//         ? "http://localhost:3000/payment/cancel"
-//         : "https://marshal-ui-yt.vercel.app/payment/cancel",
-//   });
+    // payment_intent_data: {
+    //   application_fee_amount: Math.round((data?.price as number) * 100) * 0.1,
+    //   transfer_data: {
+    //     destination: data?.User?.connectedAccountId as string,
+    //   },
+    // },
+    success_url:
+      process.env.NODE_ENV === "development"
+        ? "http://localhost:3000/payment/success"
+        : `${process.env.NEXT_PUBLIC_BASE_URL}/payment/success`,
+    cancel_url:
+      process.env.NODE_ENV === "development"
+        ? "http://localhost:3000/payment/cancel"
+        : `${process.env.NEXT_PUBLIC_BASE_URL}/payment/cancel`,
+  });
 
-//   return redirect(session.url as string);
-// }
+  return redirect(session.url as string);
+}
 
-// export async function CreateStripeAccoutnLink() {
-//   const { getUser } = getKindeServerSession();
+export async function CreateStripeAccoutnLink() {
+  const { getUser } = getKindeServerSession();
 
-//   const user = await getUser();
+  const user = await getUser();
 
-//   if (!user) {
-//     throw new Error();
-//   }
+  if (!user) {
+    throw new Error();
+  }
 
-//   const data = await prisma.user.findUnique({
-//     where: {
-//       id: user.id,
-//     },
-//     select: {
-//       connectedAccountId: true,
-//     },
-//   });
+  const data = await prisma.user.findUnique({
+    where: {
+      id: user.id,
+    },
+    select: {
+      connectedAccountId: true,
+    },
+  });
 
-//   const accountLink = await stripe.accountLinks.create({
-//     account: data?.connectedAccountId as string,
-//     refresh_url:
-//       process.env.NODE_ENV === "development"
-//         ? `http://localhost:3000/billing`
-//         : `https://marshal-ui-yt.vercel.app/billing`,
-//     return_url:
-//       process.env.NODE_ENV === "development"
-//         ? `http://localhost:3000/return/${data?.connectedAccountId}`
-//         : `https://marshal-ui-yt.vercel.app/return/${data?.connectedAccountId}`,
-//     type: "account_onboarding",
-//   });
+  const accountLink = await stripe.accountLinks.create({
+    account: data?.connectedAccountId as string,
+    refresh_url:
+      process.env.NODE_ENV === "development"
+        ? `http://localhost:3000/billing`
+        : `${process.env.NEXT_PUBLIC_BASE_URL}/billing`,
+    return_url:
+      process.env.NODE_ENV === "development"
+        ? `http://localhost:3000/return/${data?.connectedAccountId}`
+        : `${process.env.NEXT_PUBLIC_BASE_URL}/return/${data?.connectedAccountId}`,
+    type: "account_onboarding",
+  });
 
-//   return redirect(accountLink.url);
-// }
+  return redirect(accountLink.url);
+}
 
-// export async function GetStripeDashboardLink() {
-//   const { getUser } = getKindeServerSession();
+export async function GetStripeDashboardLink() {
+  const { getUser } = getKindeServerSession();
 
-//   const user = await getUser();
+  const user = await getUser();
 
-//   if (!user) {
-//     throw new Error();
-//   }
+  if (!user) {
+    throw new Error();
+  }
 
-//   const data = await prisma.user.findUnique({
-//     where: {
-//       id: user.id,
-//     },
-//     select: {
-//       connectedAccountId: true,
-//     },
-//   });
+  const data = await prisma.user.findUnique({
+    where: {
+      id: user.id,
+    },
+    select: {
+      connectedAccountId: true,
+    },
+  });
 
-//   const loginLink = await stripe.accounts.createLoginLink(
-//     data?.connectedAccountId as string
-//   );
+  const loginLink = await stripe.accounts.createLoginLink(
+    data?.connectedAccountId as string
+  );
 
-//   return redirect(loginLink.url);
-// }
+  return redirect(loginLink.url);
+}

@@ -29,7 +29,7 @@ export default async function SellRoute() {
   const user = await getUser();
 
   if (!user) {
-    throw new Error("Unauthorized");
+    return redirect("/");
   }
   // const data = await getData(user.id);
   return (
